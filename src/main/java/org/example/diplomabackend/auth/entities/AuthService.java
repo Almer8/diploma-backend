@@ -6,7 +6,6 @@ import org.example.diplomabackend.auth.security.CustomUserDetails;
 import org.example.diplomabackend.auth.security.CustomUserDetailsService;
 import org.example.diplomabackend.auth.security.JwtService;
 import org.example.diplomabackend.auth.utils.Roles;
-import org.example.diplomabackend.exception.UnauthorizedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -78,7 +77,7 @@ public class AuthService {
         return ResponseEntity.ok(new JwtResponse(newJwt));
     }
 
-    @PreAuthorize("hasAuthority('ADMIN') or @decider.tokenIdEqualsIdFromRequest(#r.id)")
+    @PreAuthorize("hasAuthority('ADMIN') or @decider.tokenIdEqualsIdFromRequest(#id)")
     public ResponseEntity<?> delete(Long id) {
         authRepository.deleteById(id);
         return ResponseEntity.ok("User deleted successfully");
