@@ -1,7 +1,15 @@
 spring:
   datasource:
     url: "jdbc:postgresql://localhost:5432/mental"
+    username: "postgres"
+    password: "postgres"
   jpa:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        hbm2ddl:
+          auto: update
+
+jwt:
+  secret: "Securesecretkeyverybigshouldbeatleast256bits"
+  expiration: 43200000
