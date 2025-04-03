@@ -12,4 +12,4 @@ spring:
 
 jwt:
   secret: "Securesecretkeyverybigshouldbeatleast256bits"
-  expiration: 43200000
+  expiration: 432000000000000
