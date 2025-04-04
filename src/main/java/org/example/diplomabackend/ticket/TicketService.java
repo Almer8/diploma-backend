@@ -2,6 +2,7 @@ package org.example.diplomabackend.ticket;
 
 import lombok.RequiredArgsConstructor;
 import org.example.diplomabackend.auth.security.CustomUserDetails;
+import org.example.diplomabackend.mailsender.MailSenderService;
 import org.example.diplomabackend.ticket.entities.CreateTicketRequest;
 import org.example.diplomabackend.ticket.entities.TicketEntity;
 import org.example.diplomabackend.ticket.entities.TicketStatus;
@@ -21,6 +22,7 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final ModelMapper modelMapper;
+    private final MailSenderService mailSender;
 
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<?> getTickets(Integer page, Integer size, String sortBy, String sortDirection) {
@@ -44,8 +46,11 @@ public class TicketService {
     @PreAuthorize("hasAuthority('PATIENT') or hasAuthority('DOCTOR')")
     public ResponseEntity<?> createTicket(CreateTicketRequest r) {
         CustomUserDetails user = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        TicketEntity ticket = TicketEntity.create(r,user.getId());
+        mailSender.sendTicketCreationMessage(ticket);
 
-        return ResponseEntity.ok(ticketRepository.save(TicketEntity.create(r,user.getId())));
+
+        return ResponseEntity.ok(ticketRepository.save(ticket));
 
     }
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -56,6 +61,12 @@ public class TicketService {
         CustomUserDetails user = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         ticket.setAdmin_id(user.getId());
+        if(ticket.getStatus().equals(TicketStatus.REJECTED)){
+            mailSender.sendTicketRejectionMessage(ticket);
+        }
+        if(ticket.getStatus() == TicketStatus.CLOSED){
+            mailSender.sendTicketClosingMessage(ticket);
+        }
 
         return ResponseEntity.ok(ticketRepository.save(ticket));
     }
