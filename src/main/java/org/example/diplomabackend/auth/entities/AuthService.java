@@ -82,4 +82,9 @@ public class AuthService {
         authRepository.deleteById(id);
         return ResponseEntity.ok("User deleted successfully");
     }
+
+    public ResponseEntity<String> getEmailById(Long id) {
+        AuthEntity user = authRepository.findById(id).orElseThrow();
+        return ResponseEntity.ok(user.getEmail());
+    }
 }
