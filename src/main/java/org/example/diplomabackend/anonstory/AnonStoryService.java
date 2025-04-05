@@ -2,6 +2,7 @@ package org.example.diplomabackend.anonstory;
 
 import lombok.RequiredArgsConstructor;
 import org.example.diplomabackend.anonstory.entities.*;
+import org.example.diplomabackend.anonstoryreport.AnonStoryReportService;
 import org.example.diplomabackend.auth.security.CustomUserDetails;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +23,7 @@ public class AnonStoryService {
     private final AnonStoryRepository anonStoryRepository;
     private final TagRepository tagRepository;
     private final ModelMapper modelMapper;
+    private final AnonStoryReportService reportService;
 
     @PreAuthorize("hasAuthority('PATIENT')")
     public ResponseEntity<?> getStories(String q, Integer page, Integer size, String sortDirection) {
@@ -64,6 +66,8 @@ public class AnonStoryService {
                 tagRepository.delete(tag);
             }
         }
+        reportService.deleteAnonStoryReportsByStoryId(id);
+
         return ResponseEntity.ok("AnonStory has been deleted");
     }
 
