@@ -29,12 +29,15 @@ public class AnonStoryEntity {
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
     List<TagEntity> tags;
+    @Column(nullable = false)
+    String content;
 
     public static AnonStoryEntity create(CreateStoryRequest r, Long author_id, List<TagEntity> tags) {
         return AnonStoryEntity.builder()
                 .author_id(author_id)
                 .displayed_name(r.getDisplayed_name())
                 .tags(tags)
+                .content(r.getContent())
                 .build();
     }
 }

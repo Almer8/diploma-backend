@@ -11,7 +11,7 @@ public interface AnonStoryRepository extends JpaRepository<AnonStoryEntity,Long>
 
     @Query("SELECT DISTINCT s FROM anon_stories s " +
             "LEFT JOIN s.tags t " +
-            "WHERE (s.displayed_name LIKE :q OR t.name LIKE :q)")
+            "WHERE (:q IS NULL OR :q = '' OR LOWER(s.displayed_name) LIKE LOWER(CONCAT('%', :q, '%')) OR LOWER(t.name) LIKE LOWER(CONCAT('%', :q, '%')) OR LOWER(s.content) LIKE LOWER(CONCAT('%', :q, '%')))")
     Page<AnonStoryEntity> findAllByQuery(@Param("q") String q, PageRequest p);
     boolean existsByTagsId(Long tagId);
 }
