@@ -5,10 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.diplomabackend.auth.utils.Roles;
+import org.example.diplomabackend.utils.Roles;
 
-@Entity
-@Table(name="users")
+@Entity(name = "users")
+@Table
 @Data
 @Builder
 @AllArgsConstructor

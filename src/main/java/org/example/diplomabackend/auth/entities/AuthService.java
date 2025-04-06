@@ -5,7 +5,7 @@ import org.example.diplomabackend.auth.AuthRepository;
 import org.example.diplomabackend.auth.security.CustomUserDetails;
 import org.example.diplomabackend.auth.security.CustomUserDetailsService;
 import org.example.diplomabackend.auth.security.JwtService;
-import org.example.diplomabackend.auth.utils.Roles;
+import org.example.diplomabackend.utils.Roles;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,6 +15,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -86,5 +88,20 @@ public class AuthService {
     public ResponseEntity<String> getEmailById(Long id) {
         AuthEntity user = authRepository.findById(id).orElseThrow();
         return ResponseEntity.ok(user.getEmail());
+    }
+
+    public List<Long> getUsersByRole(Roles role) {
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        if(userDetails.getAuthorities().contains(new SimpleGrantedAuthority(Roles.PATIENT.toString())) && role == Roles.DOCTOR ||
+        userDetails.getAuthorities().contains(new SimpleGrantedAuthority(Roles.DOCTOR.toString())) && role == Roles.PATIENT ||
+        userDetails.getAuthorities().contains(new SimpleGrantedAuthority(Roles.ADMIN.toString())) && role != Roles.ADMIN){
+            return(authRepository.findAllByRole(role).stream().map(e ->e.getId())).toList();
+        }
+        throw new RuntimeException("Not authorized");
+
+
+
+
     }
 }

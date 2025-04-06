@@ -1,4 +1,4 @@
-package org.example.diplomabackend.auth.utils;
+package org.example.diplomabackend.utils;
 
 public enum Roles {
     PATIENT, DOCTOR, ADMIN
