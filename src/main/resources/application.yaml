@@ -15,3 +15,6 @@ spring:
 jwt:
   secret: "Securesecretkeyverybigshouldbeatleast256bits"
   expiration: 432000000000000
+
+filestorage:
+  directory: "D:/Java/diploma-filestorage"
