@@ -1,10 +1,8 @@
 package org.example.diplomabackend.schedule;
 
 import lombok.RequiredArgsConstructor;
-import org.example.diplomabackend.schedule.entities.ScheduleEntity;
-import org.example.diplomabackend.schedule.entities.UpdateServicesRequest;
-import org.example.diplomabackend.schedule.entities.UpdateTemplateRequest;
-import org.example.diplomabackend.schedule.entities.UpdateVacationRequest;
+import org.example.diplomabackend.schedule.entities.*;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -19,6 +17,7 @@ import java.util.Optional;
 public class ScheduleService {
 
     private final ScheduleRepository scheduleRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ScheduleEntity getScheduleByDoctorId(Long id) {
         return scheduleRepository.findByDoctorId(id);
@@ -203,7 +202,8 @@ public class ScheduleService {
                         Long id = slot.getAppointment_id();
                         slot.setTaken(false);
                         slot.setAppointment_id(null);
-                        // TODO: Send event to Visits Service to cancel the visit with this id
+                        VisitCanceledEvent event = new VisitCanceledEvent(this, id);
+                        eventPublisher.publishEvent(event);
                     }
                 }
             }

@@ -7,6 +7,7 @@ import org.example.diplomabackend.auth.security.CustomUserDetails;
 import org.example.diplomabackend.call.CallManagerService;
 import org.example.diplomabackend.call.entities.CallStatusResponse;
 import org.example.diplomabackend.schedule.ScheduleService;
+import org.example.diplomabackend.schedule.entities.VisitCanceledEvent;
 import org.example.diplomabackend.userprofile.UserProfileService;
 import org.example.diplomabackend.userprofile.entities.UserProfileEntity;
 import org.example.diplomabackend.utils.Roles;
@@ -14,6 +15,7 @@ import org.example.diplomabackend.visit.entities.CreateVisitRequest;
 import org.example.diplomabackend.visit.entities.VisitEntity;
 import org.example.diplomabackend.visit.entities.VisitStatus;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -89,15 +91,26 @@ public class VisitService {
         if(!user.getId().equals(visit.getDoctorId()) && !user.getId().equals(visit.getPatientId())) {
             throw new RuntimeException("Access denied");
         }
-
-
         if(scheduleService.deleteVisit(visit.getId(),visit.getDoctorId(),visit.getStartTime())){
-            visitRepository.delete(visit);
+            visit.setStatus(VisitStatus.CANCELED);
+            visitRepository.save(visit);
             return ResponseEntity.ok("Visit deleted");
         } else {
             return ResponseEntity.badRequest().body("Visit not deleted");
         }
     }
+    @EventListener
+    void deleteVisitEvent(VisitCanceledEvent e){
+        VisitEntity visit = visitRepository.findById(e.getVisitId()).orElseThrow();
+        CustomUserDetails user = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if(!user.getId().equals(visit.getDoctorId()) && !user.getId().equals(visit.getPatientId())) {
+            throw new RuntimeException("Access denied");
+        }
+        visit.setStatus(VisitStatus.CANCELED);
+        visitRepository.save(visit);
+    }
+
+
     @PreAuthorize("hasAuthority('DOCTOR') or hasAuthority('PATIENT')")
     ResponseEntity<?> connectToVisit(Long id){
         VisitEntity visit = visitRepository.findById(id).orElseThrow();
