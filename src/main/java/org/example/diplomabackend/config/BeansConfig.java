@@ -7,11 +7,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Properties;
 
 @Configuration
 @PropertySource("classpath:credentials.properties")
+@EnableScheduling
 public class BeansConfig {
 
     @Value("${mail.username}")
@@ -42,4 +45,10 @@ public class BeansConfig {
         return mailSender;
 
     }
+    @Bean
+    RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+
+
 }

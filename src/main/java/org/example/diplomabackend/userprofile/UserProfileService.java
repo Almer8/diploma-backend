@@ -129,4 +129,7 @@ public class UserProfileService {
         userProfileRepository.deleteById(id);
         return ResponseEntity.ok("User Deleted");
     }
+
+    public UserProfileEntity getUserProfile(Long id){
+        return userProfileRepository.findById(id).orElseThrow();}
 }
