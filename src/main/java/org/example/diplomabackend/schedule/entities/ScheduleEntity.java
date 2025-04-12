@@ -31,6 +31,7 @@ public class ScheduleEntity {
     @Field(name = "vacation_to")
     private LocalDate vacationTo;
     private DoctorRoles role;
+    private List<Service> services;
     private List<ScheduleTemplate> template;
     private List<ScheduleDay> schedule;
 
@@ -39,6 +40,7 @@ public class ScheduleEntity {
         vacationFrom = null;
         vacationTo = null;
         role = null;
+        services = new ArrayList<>();
         template = new ArrayList<>();
         schedule = new ArrayList<>();
     }

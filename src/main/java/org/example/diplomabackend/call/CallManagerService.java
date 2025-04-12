@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.diplomabackend.call.entities.CallSession;
 import org.example.diplomabackend.call.entities.CallStatusResponse;
 import org.example.diplomabackend.call.entities.SignalMessage;
-import org.example.diplomabackend.visit.VisitService;
 import org.example.diplomabackend.visit.entities.VisitEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.TaskScheduler;

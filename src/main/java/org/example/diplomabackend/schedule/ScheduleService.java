@@ -2,7 +2,9 @@ package org.example.diplomabackend.schedule;
 
 import lombok.RequiredArgsConstructor;
 import org.example.diplomabackend.schedule.entities.ScheduleEntity;
+import org.example.diplomabackend.schedule.entities.UpdateServicesRequest;
 import org.example.diplomabackend.schedule.entities.UpdateTemplateRequest;
+import org.example.diplomabackend.schedule.entities.UpdateVacationRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -40,7 +42,59 @@ public class ScheduleService {
         return ResponseEntity.ok().body(scheduleRepository.save(schedule));
     }
 
-    public ResponseEntity<?> createVisit(Long appointmentId, Long doctorId, java.sql.Timestamp start, java.sql.Timestamp end){
+    @PreAuthorize("hasAuthority('DOCTOR') and @decider.tokenIdEqualsIdFromRequest(#r.id)")
+    public ResponseEntity<?> updateServices(UpdateServicesRequest r){
+        ScheduleEntity schedule = getScheduleByDoctorId(r.getId());
+        schedule.setServices(r.getServices());
+        return ResponseEntity.ok().body(scheduleRepository.save(schedule));
+    }
+
+    @PreAuthorize("hasAuthority('DOCTOR') and @decider.tokenIdEqualsIdFromRequest(#r.id)")
+    public ResponseEntity<?> updateVacation(UpdateVacationRequest r) {
+        ScheduleEntity schedule = getScheduleByDoctorId(r.getId());
+        if(r.getStart() == null ^ r.getEnd() == null){
+            throw new RuntimeException("Both days should exist");
+        }
+        if(schedule.getVacationFrom() != null && schedule.getVacationTo() != null){
+            for(ScheduleEntity.ScheduleDay day: schedule.getSchedule()){
+                if(!day.getDate().isBefore(schedule.getVacationFrom()) && !day.getDate().isAfter(schedule.getVacationTo())){
+                    day.setIs_working(true);
+                }
+            }
+        }
+        if(r.getStart() == null){
+            schedule.setVacationFrom(null);
+            schedule.setVacationTo(null);
+            return ResponseEntity.ok().body(scheduleRepository.save(schedule));
+        }
+        if(r.getStart().isAfter(r.getEnd())){
+            throw new RuntimeException("Start date should be before end date");
+        }
+        List<ScheduleEntity.ScheduleDay> days = schedule.getSchedule();
+        for(LocalDate date = r.getStart(); !date.isAfter(r.getEnd()); date = date.plusDays(1)) {
+            LocalDate finalDate = date;
+            Optional<ScheduleEntity.ScheduleDay> day = days.stream().filter(e ->e.getDate().equals(finalDate)).findFirst();
+            if(day.isPresent()){
+                setDayWorkingStatus(date,r.getId(),false);
+            }
+            else{
+                Optional<ScheduleEntity.ScheduleTemplate> optTemplate = schedule.getTemplate().stream()
+                        .filter(e -> e.getDay().equalsIgnoreCase(finalDate.getDayOfWeek().toString().toLowerCase())).findFirst();
+                if(optTemplate.isPresent()){
+                    ScheduleEntity.ScheduleDay newDay =
+                            new ScheduleEntity.ScheduleDay(finalDate,ScheduleEntity.Slot.copy(optTemplate.get().getSlots()),false);
+                    days.add(newDay);
+                } else {
+                    throw new RuntimeException("Schedule template not found");
+                }
+            }
+        }
+        schedule.setVacationFrom(r.getStart());
+        schedule.setVacationTo(r.getEnd());
+        return ResponseEntity.ok().body(scheduleRepository.save(schedule));
+    }
+
+    public Boolean createVisit(Long appointmentId, Long doctorId, java.sql.Timestamp start, java.sql.Timestamp end){
         ScheduleEntity scheduleEntity = getScheduleByDoctorId(doctorId);
         LocalDate visitDate = start.toLocalDateTime().toLocalDate();
         List<ScheduleEntity.ScheduleDay> days = scheduleEntity.getSchedule();
@@ -97,11 +151,12 @@ public class ScheduleService {
         scheduleSlot.setEnd(endTime);
         scheduleSlot.setTaken(true);
         scheduleSlot.setAppointment_id(appointmentId);
+        scheduleRepository.save(scheduleEntity);
 
-        return ResponseEntity.ok(scheduleRepository.save(scheduleEntity));
+        return true;
     }
 
-    public ResponseEntity<?> deleteVisit(Long appointmentId, Long doctorId, java.sql.Timestamp start){
+    public Boolean deleteVisit(Long appointmentId, Long doctorId, java.sql.Timestamp start){
         ScheduleEntity scheduleEntity = getScheduleByDoctorId(doctorId);
         LocalDate visitDate = start.toLocalDateTime().toLocalDate();
         List<ScheduleEntity.ScheduleDay> days = scheduleEntity.getSchedule();
@@ -122,10 +177,10 @@ public class ScheduleService {
             slot.get().setTaken(false);
             slot.get().setAppointment_id(null);
             scheduleRepository.save(scheduleEntity);
-            return ResponseEntity.ok(true);
+            return true;
         }
 
-        return ResponseEntity.ok(false);
+        return false;
     }
 
     @PreAuthorize("hasAuthority('DOCTOR') and @decider.tokenIdEqualsIdFromRequest(#doctorId)")
