@@ -1,7 +1,6 @@
 package org.example.diplomabackend.visit;
 
 import lombok.RequiredArgsConstructor;
-import org.example.diplomabackend.call.CallManagerService;
 import org.example.diplomabackend.visit.entities.CreateVisitRequest;
 import org.example.diplomabackend.visit.entities.VisitStatus;
 import org.springframework.http.ResponseEntity;
