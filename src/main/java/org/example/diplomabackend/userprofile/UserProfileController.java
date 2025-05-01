@@ -1,7 +1,7 @@
 package org.example.diplomabackend.userprofile;
 
 import lombok.RequiredArgsConstructor;
-import org.example.diplomabackend.userprofile.entities.UserProfileCreateRequest;
+import org.example.diplomabackend.auth.entities.UserRegisterEvent;
 import org.example.diplomabackend.userprofile.entities.UserProfileUpdateRequest;
 import org.example.diplomabackend.utils.Roles;
 import org.springframework.http.MediaType;
@@ -17,7 +17,7 @@ public class UserProfileController {
     private final UserProfileService userProfileService;
 
 
-    @GetMapping()
+    @GetMapping
     public ResponseEntity<?> getUsers(
             @RequestParam(name = "role", required = false) Roles role,
             @RequestParam(name = "q", required = false) String q,
@@ -29,9 +29,9 @@ public class UserProfileController {
         return userProfileService.getUsers(role, q, page, size, sortBy, sortDirection);
     }
 
-    @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody UserProfileCreateRequest r){
-        return userProfileService.createUser(r);
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getUserById(@PathVariable("id") Long id) {
+        return userProfileService.getUserById(id);
     }
 
     @PatchMapping(path = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -43,11 +43,6 @@ public class UserProfileController {
     @DeleteMapping("/delete/photo/{id}")
     public ResponseEntity<?> deletePhoto(@PathVariable Long id){
         return userProfileService.deletePhoto(id);
-    }
-
-    @DeleteMapping("/delete/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-        return userProfileService.deleteUser(id);
     }
 
 

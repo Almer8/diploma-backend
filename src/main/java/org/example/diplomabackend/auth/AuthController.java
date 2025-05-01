@@ -32,4 +32,9 @@ public class AuthController {
     ResponseEntity<?> delete(@PathVariable Long id){
         return authService.delete(id);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getUserIsSetUp(@PathVariable Long id){
+        return authService.getUserIsReady(id);
+    }
 }

@@ -12,13 +12,14 @@ import java.util.List;
 public interface UserProfileRepository extends JpaRepository<UserProfileEntity, Long> {
 
 
-    @Query("SELECT up, ua.email from user_profiles up join users ua on up.id = ua.id WHERE " +
-            "up.id IN :ids AND" +
-            ":q IS NULL OR :q = ''" +
-            "OR lower(ua.email) LIKE lower(concat('%',:q, '%'))" +
-            "OR lower(up.name) LIKE lower(concat('%',:q, '%'))" +
-            "OR lower(up.surname) LIKE lower(concat('%',:q, '%'))" +
-            "OR lower(up.patronymic) LIKE lower(concat('%',:q, '%'))")
+    @Query("SELECT up, ua.email FROM user_profiles up JOIN users ua ON up.id = ua.id WHERE " +
+            "up.id IN :ids AND (" +
+            ":q IS NULL OR :q = '' " +
+            "OR lower(ua.email) LIKE lower(concat('%',:q, '%')) " +
+            "OR lower(up.name) LIKE lower(concat('%',:q, '%')) " +
+            "OR lower(up.surname) LIKE lower(concat('%',:q, '%')) " +
+            "OR lower(up.patronymic) LIKE lower(concat('%',:q, '%'))" +
+            ")")
     Page<Object[]> findByIdInAnd(@Param("ids")List<Long> ids, @Param("q")String q, Pageable pageable);
 
     @Query("SELECT up, ua.email from user_profiles up join users ua on up.id = ua.id WHERE " +

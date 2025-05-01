@@ -1,8 +1,10 @@
 package org.example.diplomabackend.schedule;
 
 import lombok.RequiredArgsConstructor;
+import org.example.diplomabackend.auth.entities.DoctorRegisterEvent;
 import org.example.diplomabackend.schedule.entities.*;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -23,13 +25,13 @@ public class ScheduleService {
         return scheduleRepository.findByDoctorId(id);
     }
 
-    @PreAuthorize("hasAuthority('DOCTOR') and @decider.tokenIdEqualsIdFromRequest(#id)")
-    public ScheduleEntity createSchedule(Long id){
-        if(scheduleRepository.existsByDoctorId(id)){
+    @EventListener
+    public ScheduleEntity createSchedule(DoctorRegisterEvent e){
+        if(scheduleRepository.existsByDoctorId(e.getId())){
             throw new RuntimeException("Schedule already exists");
         }
         ScheduleEntity schedule = new ScheduleEntity();
-        schedule.setDoctorId(id);
+        schedule.setDoctorId(e.getId());
         schedule.setIsWorking(false);
         return scheduleRepository.save(schedule);
     }
@@ -173,9 +175,12 @@ public class ScheduleService {
                 .findFirst();
 
         if(slot.isPresent() && slot.get().getAppointment_id().equals(appointmentId)){
+            VisitCanceledEvent event = new VisitCanceledEvent(this, slot.get().getAppointment_id());
             slot.get().setTaken(false);
             slot.get().setAppointment_id(null);
+            eventPublisher.publishEvent(event);
             scheduleRepository.save(scheduleEntity);
+
             return true;
         }
 

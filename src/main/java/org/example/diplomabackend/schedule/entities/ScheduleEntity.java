@@ -5,6 +5,7 @@ import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import org.example.diplomabackend.utils.DoctorCategories;
 import org.example.diplomabackend.utils.DoctorRoles;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -31,6 +32,8 @@ public class ScheduleEntity {
     @Field(name = "vacation_to")
     private LocalDate vacationTo;
     private DoctorRoles role;
+    private List<DoctorCategories> categories;
+    private String country;
     private List<Service> services;
     private List<ScheduleTemplate> template;
     private List<ScheduleDay> schedule;

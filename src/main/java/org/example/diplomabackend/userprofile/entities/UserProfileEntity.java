@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.diplomabackend.auth.entities.UserRegisterEvent;
 
 import java.sql.Date;
 @Data
@@ -24,7 +25,7 @@ public class UserProfileEntity {
     private Date birthday;
     private String avatar;
 
-    public static UserProfileEntity create(UserProfileCreateRequest r) {
+    public static UserProfileEntity create(UserRegisterEvent r) {
         return UserProfileEntity
                 .builder()
                 .id(r.getId())
