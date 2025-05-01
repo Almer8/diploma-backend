@@ -12,10 +12,14 @@ import org.example.diplomabackend.userprofile.UserProfileService;
 import org.example.diplomabackend.userprofile.entities.UserProfileEntity;
 import org.example.diplomabackend.utils.Roles;
 import org.example.diplomabackend.visit.entities.CreateVisitRequest;
+import org.example.diplomabackend.visit.entities.UpdateVisitRequest;
 import org.example.diplomabackend.visit.entities.VisitEntity;
 import org.example.diplomabackend.visit.entities.VisitStatus;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +35,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RequiredArgsConstructor
@@ -41,6 +46,7 @@ public class VisitService {
     private final ScheduleService scheduleService;
     private final UserProfileService userProfileService;
     private final CallManagerService callManagerService;
+    private final ModelMapper modelMapper;
 
     @Value("${liqpay.public_key}")
     String public_key;
@@ -50,8 +56,16 @@ public class VisitService {
     String url;
 
     @PreAuthorize("hasAuthority('PATIENT') or hasAuthority('DOCTOR')")
-    ResponseEntity<?> getVisits(VisitStatus status, Integer page, Integer size) {
-        Sort sort =Sort.by(Sort.Direction.ASC,"id");
+    ResponseEntity<?> getVisits(List<VisitStatus> status, Integer page, Integer size, String sortBy, String sortDirection) {
+        Sort sort = Sort.unsorted();
+
+        if(sortBy != null && !sortBy.isEmpty()){
+            Sort.Direction direction = Sort.Direction.ASC;
+            if(sortDirection != null && sortDirection.equalsIgnoreCase("desc")) {
+                direction = Sort.Direction.DESC;
+            }
+            sort = Sort.by(direction, sortBy);
+        }
         PageRequest p = PageRequest.of(page, size, sort);
 
         CustomUserDetails user = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -92,8 +106,6 @@ public class VisitService {
             throw new RuntimeException("Access denied");
         }
         if(scheduleService.deleteVisit(visit.getId(),visit.getDoctorId(),visit.getStartTime())){
-            visit.setStatus(VisitStatus.CANCELED);
-            visitRepository.save(visit);
             return ResponseEntity.ok("Visit deleted");
         } else {
             return ResponseEntity.badRequest().body("Visit not deleted");
@@ -101,7 +113,7 @@ public class VisitService {
     }
     @EventListener
     void deleteVisitEvent(VisitCanceledEvent e){
-        VisitEntity visit = visitRepository.findById(e.getVisitId()).orElseThrow();
+            VisitEntity visit = visitRepository.findById(e.getVisitId()).orElseThrow();
         CustomUserDetails user = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if(!user.getId().equals(visit.getDoctorId()) && !user.getId().equals(visit.getPatientId())) {
             throw new RuntimeException("Access denied");
@@ -170,6 +182,17 @@ public class VisitService {
         response.put("signature", signature);
 
         return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasAuthority('DOCTOR') or hasAuthority('PATIENT')") //TODO Remove Patient Access
+    ResponseEntity<?> updateVisit(UpdateVisitRequest r){
+        VisitEntity visit = visitRepository.findById(r.getId()).orElseThrow();
+        CustomUserDetails user = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if(!user.getId().equals(visit.getDoctorId()) && !user.getId().equals(visit.getPatientId())) {
+            throw new RuntimeException("Access denied");
+        }
+        modelMapper.map(r,visit);
+        return ResponseEntity.ok(visitRepository.save(visit));
     }
 
 }
