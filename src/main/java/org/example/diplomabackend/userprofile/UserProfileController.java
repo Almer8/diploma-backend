@@ -34,16 +34,19 @@ public class UserProfileController {
         return userProfileService.getUserById(id);
     }
 
-    @PatchMapping(path = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PatchMapping(path = "/update")
     public ResponseEntity<?> updateUser(
-            @RequestPart(value = "r") UserProfileUpdateRequest r,
-            @RequestPart(value = "photo",required = false) MultipartFile photo){
-        return userProfileService.updateUser(r, photo);
+            @RequestBody UserProfileUpdateRequest r){
+        return userProfileService.updateUser(r);
+    }
+    @PatchMapping("/update/photo/{id}")
+    public ResponseEntity<?> updateUserPhoto(
+            @RequestPart(value = "photo") MultipartFile photo,
+            @PathVariable Long id){
+        return userProfileService.updatePhoto(photo,id);
     }
     @DeleteMapping("/delete/photo/{id}")
     public ResponseEntity<?> deletePhoto(@PathVariable Long id){
         return userProfileService.deletePhoto(id);
     }
-
-
 }

@@ -8,7 +8,7 @@ import java.sql.Date;
 
 @Data
 @Builder
-public class DoctorProfileResponse {
+public class ExtendedProfileResponse {
     private Long id;
     private String email;
     private String name;
@@ -19,8 +19,8 @@ public class DoctorProfileResponse {
     private String avatar;
     private ScheduleEntity schedule;
 
-    public static DoctorProfileResponse create(UserProfileEntity e, String email, ScheduleEntity schedule) {
-        return DoctorProfileResponse.builder()
+    public static ExtendedProfileResponse create(UserProfileEntity e, String email, ScheduleEntity schedule) {
+        return ExtendedProfileResponse.builder()
                 .id(e.getId())
                 .email(email)
                 .name(e.getName())

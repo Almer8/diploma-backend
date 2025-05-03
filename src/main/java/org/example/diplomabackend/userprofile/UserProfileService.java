@@ -2,11 +2,12 @@ package org.example.diplomabackend.userprofile;
 
 import lombok.RequiredArgsConstructor;
 import org.example.diplomabackend.auth.entities.AuthService;
+import org.example.diplomabackend.auth.entities.UpdateRequest;
 import org.example.diplomabackend.auth.entities.UserDeleteEvent;
 import org.example.diplomabackend.auth.security.CustomUserDetails;
 import org.example.diplomabackend.auth.entities.UserRegisterEvent;
 import org.example.diplomabackend.schedule.ScheduleService;
-import org.example.diplomabackend.userprofile.entities.DoctorProfileResponse;
+import org.example.diplomabackend.userprofile.entities.ExtendedProfileResponse;
 import org.example.diplomabackend.userprofile.entities.UserProfileEntity;
 import org.example.diplomabackend.userprofile.entities.UserProfileResponse;
 import org.example.diplomabackend.userprofile.entities.UserProfileUpdateRequest;
@@ -44,7 +45,7 @@ public class UserProfileService {
     @Value("${filestorage.directory}")
     private String UPLOAD_DIRECTORY;
 
-    ResponseEntity<?> getUsers(Roles role, String q, Integer page, Integer size, String sortBy, String sortDirection){
+    ResponseEntity<?> getUsers(Roles role, String q, Integer page, Integer size, String sortBy, String sortDirection) {
 
         CustomUserDetails user = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
@@ -54,50 +55,50 @@ public class UserProfileService {
             direction = Sort.Direction.DESC;
         }
 
-        sort = Sort.by(direction,sortBy);
+        sort = Sort.by(direction, sortBy);
         PageRequest p = PageRequest.of(page, size, sort);
         Page<Object[]> resultPage;
 
         //Patient fetch Doctors
-        if(user.getAuthorities().contains(new SimpleGrantedAuthority(Roles.PATIENT.toString()))){
-            if(role == Roles.DOCTOR){
+        if (user.getAuthorities().contains(new SimpleGrantedAuthority(Roles.PATIENT.toString()))) {
+            if (role == Roles.DOCTOR) {
                 List<Long> ids = authService.getUsersByRoleAndStatus(role, true);
-                resultPage = userProfileRepository.findByIdInAnd(ids,q,p);
+                resultPage = userProfileRepository.findByIdInAnd(ids, q, p);
 
-                List<DoctorProfileResponse> res = resultPage.getContent().stream()
-                        .map(e -> DoctorProfileResponse
-                                .create((UserProfileEntity) e[0],(String) e[1], scheduleService.getScheduleByDoctorId(((UserProfileEntity) e[0]).getId()))).toList();
-                return ResponseEntity.ok(new PageImpl<>(res,p,resultPage.getTotalElements()));
+                List<ExtendedProfileResponse> res = resultPage.getContent().stream()
+                        .map(e -> ExtendedProfileResponse
+                                .create((UserProfileEntity) e[0], (String) e[1], scheduleService.getScheduleByDoctorId(((UserProfileEntity) e[0]).getId()))).toList();
+                return ResponseEntity.ok(new PageImpl<>(res, p, resultPage.getTotalElements()));
 
             } else {
                 throw new RuntimeException("Access denied");
             }
         }
 
-        if(role != null){
+        if (role != null) {
             List<Long> ids = authService.getUsersByRoleAndStatus(role, null);
             ids.remove(user.getId());
-            resultPage = userProfileRepository.findByIdInAnd(ids,q,p);
-        }
-        else{
-            if(!user.getAuthorities().contains(new SimpleGrantedAuthority(Roles.ADMIN.toString()))){
+            resultPage = userProfileRepository.findByIdInAnd(ids, q, p);
+        } else {
+            if (!user.getAuthorities().contains(new SimpleGrantedAuthority(Roles.ADMIN.toString()))) {
                 throw new RuntimeException("Access denied");
             }
-            resultPage = userProfileRepository.findByQuery(q,p);
+            resultPage = userProfileRepository.findByQuery(q, p);
         }
 
 
         List<UserProfileResponse> res = resultPage.getContent().stream()
-                .map(e -> UserProfileResponse.create((UserProfileEntity) e[0],(String) e[1])).toList();
+                .map(e -> UserProfileResponse.create((UserProfileEntity) e[0], (String) e[1])).toList();
 
-        return ResponseEntity.ok(new PageImpl<>(res,p,resultPage.getTotalElements()));
+        return ResponseEntity.ok(new PageImpl<>(res, p, resultPage.getTotalElements()));
 
     }
 
-    ResponseEntity<?> getUserById(Long id){
+    ResponseEntity<?> getUserById(Long id) {
         CustomUserDetails user = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Roles role = authService.getRoleById(id);
-        if(!user.getId().equals(id)) {
+        String email = null;
+        if (!user.getId().equals(id)) {
             if (user.getAuthorities().contains(new SimpleGrantedAuthority(Roles.PATIENT.toString()))) {
                 if (role != Roles.DOCTOR) {
                     throw new RuntimeException("Access denied");
@@ -110,27 +111,43 @@ public class UserProfileService {
             }
         }
         UserProfileEntity finded = userProfileRepository.findById(id).orElseThrow();
-        DoctorProfileResponse res = DoctorProfileResponse.create(finded, null,scheduleService.getScheduleByDoctorId(finded.getId()));
+        if (user.getId().equals(finded.getId())) {
+            email = authService.getEmailById(id).getBody();
+        }
+        ExtendedProfileResponse res = ExtendedProfileResponse.create(finded, email, scheduleService.getScheduleByDoctorId(finded.getId()));
         return ResponseEntity.ok(res);
     }
 
     @EventListener
-    ResponseEntity<?> createUser(UserRegisterEvent r){
+    ResponseEntity<?> createUser(UserRegisterEvent r) {
         return ResponseEntity.ok(userProfileRepository.save(UserProfileEntity.create(r)));
     }
 
     @PreAuthorize("hasAuthority('ADMIN') or @decider.tokenIdEqualsIdFromRequest(#r.id)")
-    ResponseEntity<?> updateUser(UserProfileUpdateRequest r, MultipartFile photo){
+    ResponseEntity<?> updateUser(UserProfileUpdateRequest r) {
 
-    Path filePath = null;
-    if(photo != null && !photo.isEmpty()){
+
+        UserProfileEntity user = userProfileRepository.findById(r.getId()).orElseThrow(() -> new RuntimeException("User Not Found"));
+        modelMapper.map(r, user);
+        UserProfileEntity newUser = userProfileRepository.save(user);
+        if (r.getEmail() != null) {
+            authService.update(UpdateRequest.create(r.getId(), r.getEmail()));
+        }
+        authService.activateUser(r.getId());
+        ExtendedProfileResponse res = ExtendedProfileResponse.create(newUser, r.getEmail(), scheduleService.getScheduleByDoctorId(newUser.getId()));
+        return ResponseEntity.ok(res);
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN') or @decider.tokenIdEqualsIdFromRequest(#id)")
+    ResponseEntity<?> updatePhoto(MultipartFile photo, Long id) {
+
         String filename = photo.getOriginalFilename();
         String extention = "";
-        if(filename != null && filename.contains(".")){
-            extention = filename.substring(filename.lastIndexOf("."));
-        }
-        String uploadFilename = r.getId() + extention;
+        extention = filename.substring(filename.lastIndexOf("."));
 
+        String uploadFilename = id + extention;
+
+        Path filePath;
         try {
 
             Path uploadPath = Paths.get(UPLOAD_DIRECTORY.concat("/avatars"));
@@ -143,36 +160,33 @@ public class UserProfileService {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
 
-    UserProfileEntity user = userProfileRepository.findById(r.getId()).orElseThrow(()->new RuntimeException("User Not Found"));
-    modelMapper.map(r, user);
-    if(filePath != null){
+        UserProfileEntity user = userProfileRepository.findById(id).orElseThrow(() -> new RuntimeException("User Not Found"));
         user.setAvatar(filePath.toString());
-    }
-    UserProfileEntity newUser = userProfileRepository.save(user);
-    authService.activateUser(r.getId());
-    return ResponseEntity.ok(newUser);
+        UserProfileEntity newUser = userProfileRepository.save(user);
+        ExtendedProfileResponse res = ExtendedProfileResponse.create(newUser, authService.getEmailById(id).getBody(), scheduleService.getScheduleByDoctorId(newUser.getId()));
+        return ResponseEntity.ok(res);
     }
 
     @PreAuthorize("hasAuthority('ADMIN') or @decider.tokenIdEqualsIdFromRequest(#id)")
-    ResponseEntity<?> deletePhoto(Long id){
+    ResponseEntity<?> deletePhoto(Long id) {
         UserProfileEntity user = userProfileRepository.findById(id).orElseThrow();
         File photo = new File(user.getAvatar());
-            if(photo.delete()){
-                user.setAvatar(null);
-                userProfileRepository.save(user);
-            }
+        if (photo.delete()) {
+            user.setAvatar(null);
+            userProfileRepository.save(user);
+        }
         return ResponseEntity.ok().build();
     }
 
     @EventListener
-    ResponseEntity<?> deleteUser(UserDeleteEvent e){
+    ResponseEntity<?> deleteUser(UserDeleteEvent e) {
         deletePhoto(e.getId());
         userProfileRepository.deleteById(e.getId());
         return ResponseEntity.ok("User Deleted");
     }
 
-    public UserProfileEntity getUserProfile(Long id){
-        return userProfileRepository.findById(id).orElseThrow();}
+    public UserProfileEntity getUserProfile(Long id) {
+        return userProfileRepository.findById(id).orElseThrow();
+    }
 }
