@@ -18,8 +18,6 @@ import org.example.diplomabackend.visit.entities.VisitStatus;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +29,6 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HashMap;
@@ -137,8 +134,6 @@ public class VisitService {
 
     ResponseEntity<?> generatePayLink(Long id) {
 
-        LocalDate date = LocalDate.now();
-
         VisitEntity visit = visitRepository.findById(id).orElseThrow();
         if(!visit.getStatus().equals(VisitStatus.PLANNED)){
             throw new RuntimeException("This visit can't be payed");
@@ -192,6 +187,10 @@ public class VisitService {
             throw new RuntimeException("Access denied");
         }
         modelMapper.map(r,visit);
+        if(r.getDiagnosis() != null){
+            visit.setDiagnosis(r.getDiagnosis());
+        }
+
         return ResponseEntity.ok(visitRepository.save(visit));
     }
 
