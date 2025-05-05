@@ -74,6 +74,21 @@ public class UserProfileService {
                 throw new RuntimeException("Access denied");
             }
         }
+        //Doctor fetch Patients
+        if (user.getAuthorities().contains(new SimpleGrantedAuthority(Roles.DOCTOR.toString()))) {
+            if (role == Roles.PATIENT) {
+                List<Long> ids = authService.getUsersByRoleAndStatus(role, true);
+                resultPage = userProfileRepository.findByIdInAnd(ids, q, p);
+
+                List<ExtendedProfileResponse> res = resultPage.getContent().stream()
+                        .map(e -> ExtendedProfileResponse
+                                .create((UserProfileEntity) e[0], (String) e[1], null)).toList();
+                return ResponseEntity.ok(new PageImpl<>(res, p, resultPage.getTotalElements()));
+
+            } else {
+                throw new RuntimeException("Access denied");
+            }
+        }
 
         if (role != null) {
             List<Long> ids = authService.getUsersByRoleAndStatus(role, null);
@@ -85,7 +100,6 @@ public class UserProfileService {
             }
             resultPage = userProfileRepository.findByQuery(q, p);
         }
-
 
         List<UserProfileResponse> res = resultPage.getContent().stream()
                 .map(e -> UserProfileResponse.create((UserProfileEntity) e[0], (String) e[1])).toList();
