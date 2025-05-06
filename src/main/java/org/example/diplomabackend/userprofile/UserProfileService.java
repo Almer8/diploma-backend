@@ -125,6 +125,9 @@ public class UserProfileService {
             }
         }
         UserProfileEntity finded = userProfileRepository.findById(id).orElseThrow();
+        if (user.getAuthorities().contains(new SimpleGrantedAuthority(Roles.DOCTOR.toString())) && role == Roles.PATIENT) {
+            email = authService.getEmailById(id).getBody();
+        }
         if (user.getId().equals(finded.getId())) {
             email = authService.getEmailById(id).getBody();
         }
