@@ -1,7 +1,8 @@
 package org.example.diplomabackend.call.entities;
 
-public record CallStatusResponse(
+public record   CallStatusResponse(
         Long visitId,
         Boolean joiningExisting,
-        Integer currentParticipants
+        Integer currentParticipants,
+        CallSession session
 ) {}

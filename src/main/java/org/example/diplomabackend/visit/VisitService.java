@@ -127,8 +127,8 @@ public class VisitService {
         if(!user.getId().equals(visit.getDoctorId()) && !user.getId().equals(visit.getPatientId())) {
             throw new RuntimeException("Access denied");
         }
-        CallStatusResponse response = callManagerService.handleConnectionAttempt(visit, user.getId());
-        return ResponseEntity.ok(response);
+       // CallStatusResponse response = callManagerService.handleConnectionAttempt(visit, user.getId());
+        return ResponseEntity.ok().build();
     }
 
 
@@ -192,6 +192,10 @@ public class VisitService {
         }
 
         return ResponseEntity.ok(visitRepository.save(visit));
+    }
+
+    public VisitEntity getVisit(Long id){
+        return visitRepository.findById(id).orElseThrow();
     }
 
 }
